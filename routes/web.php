@@ -4,7 +4,8 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\UserCaontroller;//le dice donde esta el controlador UserController
+use App\Http\Controllers\UserController;//le dice donde esta el controlador UserController
+
 
 
 Route::get('/', function () {
@@ -25,7 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     //metemos la ruta aqui dentro de middleware para que solo personas autorizadas puedan acceder a la info. de los usuarios 
-    Route::get('u/users', [UserControler::class, 'index'])->name('users.index');//al ecribir /users en la web manda una peticion get y le define la ruta, asigna aopodo 
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');//al ecribir /users en la web manda una peticion get y le define la ruta, asigna aopodo 
 });
 
 require __DIR__.'/auth.php';
