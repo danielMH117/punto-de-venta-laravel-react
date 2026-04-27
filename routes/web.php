@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     //metemos la ruta aqui dentro de middleware para que solo personas autorizadas puedan acceder a la info. de los usuarios 
     Route::resource('users', UserController::class);//al ecribir /users en la web manda una peticion get y le define la ruta, asigna aopodo 
-});
+    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+    });
 
 require __DIR__.'/auth.php';
