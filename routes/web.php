@@ -26,7 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     //metemos la ruta aqui dentro de middleware para que solo personas autorizadas puedan acceder a la info. de los usuarios 
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');//al ecribir /users en la web manda una peticion get y le define la ruta, asigna aopodo 
+    Route::resource('users', UserController::class);//al ecribir /users en la web manda una peticion get y le define la ruta, asigna aopodo 
 });
 
 require __DIR__.'/auth.php';
