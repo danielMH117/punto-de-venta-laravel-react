@@ -17,21 +17,22 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Guardamos solo el que vamos a usar para el sync
-        $admin = Role::UpdateOrCreate(['name' => 'Administrador']);
-        //solo creamos los roles
-        Role::UpdateOrCreate(['name' => 'Cliente']);
-    
-        // 2. Creamos al usuario (Separamos búsqueda de creación)
-    $user = User::UpdateOrCreate(
-    ['email' => 'daniel@example.com'],
-    [                                  
-        'name' => 'Daniel',
-        'password' => bcrypt('password123'),
-    ]
-);
+        $admin = Role::updateOrCreate(['name' => 'Administrador']);
+        Role::updateOrCreate(['name' => 'Cliente']);
 
-        // 3. Relacionamos al usuario con el rol de Administrador
-        $user->roles()->syncWithoutDetaching($admin->id);
-        
+        // 2. Creamos al usuario
+        $user = User::updateOrCreate(
+            ['email' => 'daniel@example.com'],
+            [
+                'name' => 'Daniel',
+                'password' => bcrypt('password123'),
+            ]
+        );
+
+        // 3. Relacionamos al usuario con el rol (CORREGIDO CON CORCHETES)
+        $user->roles()->syncWithoutDetaching([$admin->id]);
+
+        // 4. LLAMAR AL SEEDER DE PRODUCTOS (NUEVO)
+        $this->call(ProductoSeeder::class);
     }
 }
