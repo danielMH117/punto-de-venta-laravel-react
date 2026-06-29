@@ -17,17 +17,12 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Guardamos solo el que vamos a usar para el sync
-        $admin = Role::firstOrCreate(['name' => 'Administrador']);
+        $admin = Role::UpdateOrCreate(['name' => 'Administrador']);
         //solo creamos los roles
-        Role::firstOrCreate(['name' => 'Becario']);
-        Role::firstOrCreate(['name' => 'Gerente']);
-        Role::firstOrCreate(['name' => 'Recursos Humanos']);
-        Role::firstOrCreate(['name' => 'Coordinador de vinculacion']);
-        
-
-        // 2. Creamos al usuario y lo guardamos en la variable $user
+        Role::UpdateOrCreate(['name' => 'Cliente']);
+    
         // 2. Creamos al usuario (Separamos búsqueda de creación)
-    $user = User::firstOrCreate(
+    $user = User::UpdateOrCreate(
     ['email' => 'daniel@example.com'],
     [                                  
         'name' => 'Daniel',

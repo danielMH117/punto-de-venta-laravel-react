@@ -2,13 +2,13 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 
 export default function Index({ auth, users, roles }) {
-    // Agregamos 'id', 'put' y 'reset' que faltaban en la desestructuración
+    // Cambiamos 'role_id' por 'role' para que coincida exactamente con la columna de la BD
     const { data, setData, post, put, delete: destroy, reset, processing, errors } = useForm({
-        id: '', // Importante para saber si editamos o creamos
+        id: '', 
         name: '',
         email: '',
         password: '',
-        role_id: ''
+        role: '' // Ahora almacena 'admin' o 'user'
     });
 
     const eliminarUsuario = (id) => {
@@ -23,7 +23,6 @@ export default function Index({ auth, users, roles }) {
         e.preventDefault();
 
         if (data.id) {
-            // Si hay un ID, usamos PUT para actualizar
             put(route('users.update', data.id), {
                 onSuccess: () => {
                     reset();
@@ -31,7 +30,6 @@ export default function Index({ auth, users, roles }) {
                 },
             });
         } else {
-            // Si no hay ID, usamos POST para crear
             post(route('users.store'), {
                 onSuccess: () => {
                     reset();
@@ -46,82 +44,112 @@ export default function Index({ auth, users, roles }) {
             id: user.id,
             name: user.name,
             email: user.email,
-            role_id: user.roles[0]?.id || '', 
+            role: user.role || '', // Cargamos el string directo del rol que tiene el usuario ('admin' o 'user')
             password: '', 
         });
     };
 
+    // Clase optimizada para romper el comportamiento de autocompletado blanco del navegador
+    const inputStyle = "w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 font-medium transition-colors placeholder-zinc-700 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#000000] [&:-webkit-autofill]:text-fill-white";
+
     return (
         <AuthenticatedLayout
             user={auth.user}
-            header={<h2 className="font-semibold text-xl text-gray-800 leading-tight">Gestión de Usuarios</h2>}
+            header={null}
         >
             <Head title="Usuarios" />
 
-            <div className="py-12">
+            <div className="py-12 bg-black min-h-screen text-gray-100">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border-b border-gray-200">
+                    
+                    {/* ENCABEZADO INTEGRADO */}
+                    <div className="border-b border-zinc-800 pb-4 mb-8">
+                        <h2 className="text-xl font-black tracking-wider text-white uppercase">
+                            CONTROL DE <span className="text-purple-500">USUARIOS Y ROLES</span>
+                        </h2>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">
+                            ADMINISTRACIÓN DE ACCESOS E IDENTIDADES DEL SISTEMA
+                        </p>
+                    </div>
+                    
+                    {/* CONTENEDOR PRINCIPAL */}
+                    <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-6 shadow-2xl">
                         
                         {/* FORMULARIO DE USUARIO */}
-                        <form onSubmit={submit} className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                        <form onSubmit={submit} className="mb-8 p-6 bg-zinc-900 border border-zinc-800 rounded-xl shadow-lg">
+                            <h3 className="text-xs font-black text-white uppercase tracking-wider mb-4 border-b border-zinc-800 pb-2">
+                                {data.id ? 'Modificar Parámetros de Operador' : 'REGISTRAR NUEVO OPERADOR'}
+                            </h3>
+
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                    <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1 tracking-wider">Nombre</label>
                                     <input
                                         type="text"
                                         value={data.name}
                                         onChange={e => setData('name', e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                        className={inputStyle}
+                                        placeholder="Ej. Juan Pérez"
                                         required
                                     />
-                                    {errors.name && <div className="text-red-500 text-xs mt-1">{errors.name}</div>}
+                                    {errors.name && <div className="text-red-500 text-xs mt-1 font-mono uppercase">{errors.name}</div>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                                    <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1 tracking-wider">Email</label>
                                     <input
-                                        type="email"
+                                        type="type"
                                         value={data.email}
                                         onChange={e => setData('email', e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                        className={`${inputStyle} font-mono`}
+                                        placeholder="correo@ejemplo.com"
                                         required
                                     />
-                                    {errors.email && <div className="text-red-500 text-xs mt-1">{errors.email}</div>}
+                                    {errors.email && <div className="text-red-500 text-xs mt-1 font-mono uppercase">{errors.email}</div>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Contraseña</label>
+                                    <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1 tracking-wider">Contraseña</label>
                                     <input
                                         type="password"
                                         value={data.password}
                                         onChange={e => setData('password', e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder={data.id ? 'Dejar en blanco para no cambiar' : ''}
+                                        className={`${inputStyle} font-mono`}
+                                        placeholder={data.id ? 'Dejar vacío para mantener actual' : '••••••••'}
                                         required={!data.id}
                                     />
+                                    {errors.password && <div className="text-red-500 text-xs mt-1 font-mono uppercase">{errors.password}</div>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Rol</label>
+                                    <label className="block text-[10px] uppercase font-bold text-zinc-400 mb-1 tracking-wider">Rol Asignado</label>
                                     <select
-                                        value={data.role_id}
-                                        onChange={e => setData('role_id', e.target.value)}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                        value={data.role}
+                                        onChange={e => setData('role', e.target.value)}
+                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 uppercase font-bold text-xs tracking-wider transition-colors"
                                         required
                                     >
-                                        <option value="">Selecciona un rol</option>
-                                        {roles.map(role => (
-                                            <option key={role.id} value={role.id}>{role.name}</option>
-                                        ))}
+                                        <option value="" className="text-zinc-600">SELECCIONA UN ROL</option>
+                                        {/* Mapeamos tus roles dinámicos, pero el value será 'admin' o 'user' */}
+                                        {roles.map(role => {
+                                            // Normalizamos el string: si el rol se llama 'administrador', lo guardamos como 'admin'. Si no, como 'user'.
+                                            const roleValue = role.name.toLowerCase() === 'administrador' ? 'admin' : 'user';
+                                            return (
+                                                <option key={role.id} value={roleValue} className="text-white bg-zinc-900">
+                                                    {role.name.toUpperCase()}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
+                                    {errors.role && <div className="text-red-500 text-xs mt-1 font-mono uppercase">{errors.role}</div>}
                                 </div>
                             </div>
 
-                            <div className="mt-4 flex gap-2">
+                            <div className="mt-5 flex gap-2 border-t border-zinc-800/60 pt-4">
                                 <button 
                                     type="submit" 
                                     disabled={processing}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                    className="px-5 py-2 bg-purple-600 text-white font-black text-xs uppercase tracking-wider rounded hover:bg-purple-500 disabled:opacity-50 transition-colors shadow-md shadow-purple-600/10"
                                 >
                                     {data.id ? 'Actualizar Usuario' : 'Crear Usuario'}
                                 </button>
@@ -130,7 +158,7 @@ export default function Index({ auth, users, roles }) {
                                     <button 
                                         type="button" 
                                         onClick={() => reset()} 
-                                        className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors"
+                                        className="px-5 py-2 bg-zinc-800 text-zinc-400 font-black text-xs uppercase tracking-wider rounded hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
                                     >
                                         Cancelar
                                     </button>
@@ -138,39 +166,50 @@ export default function Index({ auth, users, roles }) {
                             </div>
                         </form>
 
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                        {/* TABLA DE USUARIOS */}
+                        <div className="overflow-x-auto border border-zinc-800 rounded-xl bg-zinc-900/40">
+                            <table className="min-w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-100 text-left text-xs font-bold uppercase text-gray-600">
-                                        <th className="px-6 py-3">Nombre</th>
-                                        <th className="px-6 py-3">Email</th>
-                                        <th className="px-6 py-3 text-center">Roles</th>
-                                        <th className="px-6 py-3 text-right">Acciones</th>
+                                    <tr className="bg-zinc-950 border-b border-zinc-800 text-[10px] uppercase font-bold text-gray-400 tracking-widest">
+                                        <th className="px-6 py-4">Nombre / Operador</th>
+                                        <th className="px-6 py-4">Email</th>
+                                        <th className="px-6 py-4 text-center">Nivel de Privilegios</th>
+                                        <th className="px-6 py-4 text-right w-44">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
+                                <tbody className="divide-y divide-zinc-800/60 text-sm">
                                     {users.length > 0 ? (
                                         users.map((user) => (
-                                            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 text-sm text-gray-900">{user.name}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    {user.roles.map((role) => (
-                                                        <span key={role.id} className="inline-block px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-full shadow-sm mr-1">
-                                                            {role.name}
-                                                        </span>
-                                                    ))}
+                                            <tr key={user.id} className="hover:bg-zinc-950/40 transition-colors">
+                                                <td className="px-6 py-4 font-bold text-white">
+                                                    <div>{user.name}</div>
+                                                    <div className="text-[9px] text-zinc-500 font-mono mt-0.5">UID_REF: {user.id}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-right text-sm font-medium">
+                                                <td className="px-6 py-4 font-mono text-zinc-300 text-xs">
+                                                    {user.email}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {/* Mostramos el badge leyendo directamente la columna string 'role' de cada usuario */}
+                                                    <span 
+                                                        className={`inline-block text-[9px] uppercase font-black px-2.5 py-1 rounded border tracking-wider mr-1 ${
+                                                            user.role === 'admin'
+                                                                ? 'text-cyan-400 bg-cyan-500/5 border-cyan-950'
+                                                                : 'text-purple-400 bg-purple-500/5 border-purple-950'
+                                                        }`}
+                                                    >
+                                                        {user.role === 'admin' ? 'Administrador' : 'Cliente'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right space-x-2">
                                                     <button
                                                         onClick={() => prepararEdicion(user)}
-                                                        className="text-indigo-600 hover:text-indigo-900 mr-4 transition-colors"
+                                                        className="text-[10px] uppercase font-bold text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-2 py-1 rounded transition-colors"
                                                     >
                                                         Editar
                                                     </button>
                                                     <button
                                                         onClick={() => eliminarUsuario(user.id)}
-                                                        className="text-red-600 hover:text-red-900 transition-colors"
+                                                        className="text-[10px] uppercase font-bold text-rose-500 hover:text-rose-400 border border-rose-950 hover:border-rose-800 bg-rose-950/10 px-2 py-1 rounded transition-colors"
                                                     >
                                                         Eliminar
                                                     </button>
@@ -179,14 +218,15 @@ export default function Index({ auth, users, roles }) {
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
-                                                No hay usuarios registrados.
+                                            <td colSpan="4" className="px-6 py-12 text-center text-zinc-500 uppercase tracking-wider text-xs font-bold">
+                                                No hay usuarios registrados en el sistema.
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
+
                     </div>
                 </div>
             </div>

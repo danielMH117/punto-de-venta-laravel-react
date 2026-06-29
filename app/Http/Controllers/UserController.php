@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User; // Importamos el modelo User
-use App\Models\Role; // También necesitaremos el modelo Role para el formulario
-use Inertia\Inertia; // Importamos la herramienta para React
+use App\Models\User; 
+use App\Models\Role; 
+use Inertia\Inertia; 
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
     public function index()
     {
+        // Traemos todos los usuarios (puedes mantener el with('roles') si lo usas en otra parte,
+        // pero ahora nuestra vista lee directo la columna 'role')
         $users = User::with('roles')->get();
-        $roles = Role::all(); // Enviamos los roles para poder elegirlos en el formulario de "Crear"
+        $roles = Role::all(); 
         
         return Inertia::render('Users/index', [
             'users' => $users,
@@ -20,36 +22,56 @@ class UserController extends Controller
         ]);
     }
 
-    // Función para CREAR
+    // Función para CREAR OPERADOR
     public function store(Request $request)
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
+        // Validamos los datos entrantes para evitar fallos de base de datos
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6',
+            'role' => 'required|string|in:admin,user', // Validamos que llegue 'admin' o 'user'
         ]);
 
-        // Conectamos con el rol elegido en el formulario
-        $user->roles()->attach($request->role_id);
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'role' => $validated['role'], // Guardamos el rol en la columna de texto de la BD
+        ]);
 
-        return redirect()->back(); // Refresca la tabla automáticamente
+        return redirect()->back(); 
     }
 
-    // Función para ACTUALIZAR
+    // Función para ACTUALIZAR OPERADOR
     public function update(Request $request, User $user)
     {
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
+        // Validamos los datos, ignorando el email del propio usuario actual para que no choque
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:6', // Contraseña opcional al editar
+            'role' => 'required|string|in:admin,user',
         ]);
 
-        // sync() borra el rol anterior y pone el nuevo en la tabla intermedia
-        $user->roles()->sync([$request->role_id]);
+        // Preparamos los datos básicos a actualizar
+        $dataToUpdate = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => $validated['role'], // Actualizamos la columna string de rol
+        ];
+
+        // Si el administrador escribió una nueva contraseña, la encriptamos y la añadimos
+        if (!empty($validated['password'])) {
+            $dataToUpdate['password'] = bcrypt($validated['password']);
+        }
+
+        $user->update($dataToUpdate);
 
         return redirect()->back();
     }
 
-    // Función para ELIMINAR
+    // Función para ELIMINAR OPERADOR
     public function destroy(User $user)
     {
         $user->delete();
