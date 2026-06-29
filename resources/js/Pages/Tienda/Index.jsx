@@ -29,278 +29,201 @@ export default function Index({ productos = [] }) {
         ? productos
         : productos.filter(p => p.categoria === categoriaSeleccionada);
 
-    // MODIFICADO: Agregar producto usando la nueva función de persistencia
     const agregarAlCarrito = (producto) => {
         const existe = carrito.find(item => item.id === producto.id);
-        let nuevoCarrito = [];
-
         if (existe) {
             if (existe.cantidad < producto.stock) {
-                nuevoCarrito = carrito.map(item =>
-                    item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
+                actualizarCarritoYMemoria(
+                    carrito.map(item => item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item)
                 );
-            } else {
-                alert(`Lo sentimos, no hay más stock disponible de: ${producto.nombre}`);
-                return;
             }
         } else {
-            nuevoCarrito = [...carrito, { ...producto, cantidad: 1 }];
+            actualizarCarritoYMemoria([...carrito, { ...producto, cantidad: 1 }]);
         }
-
-        actualizarCarritoYMemoria(nuevoCarrito);
     };
 
-    // CORREGIDO: Se añadió 'carrito.map' para evitar fallos de referencia
-    const restarDelCarrito = (id) => {
-        const producto = carrito.find(item => item.id === id);
-        let nuevoCarrito = [];
+    const cambiarCantidad = (id, cambio) => {
+        const productoInCarrito = carrito.find(item => item.id === id);
+        const productoOriginal = productos.find(p => p.id === id);
+        
+        if (!productoInCarrito || !productoOriginal) return;
 
-        if (producto.cantidad === 1) {
-            nuevoCarrito = carrito.filter(item => item.id !== id);
-        } else {
-            nuevoCarrito = carrito.map(item =>
-                item.id === id ? { ...item, cantidad: item.cantidad - 1 } : item
+        const nuevaCantidad = productoInCarrito.cantidad + cambio;
+
+        if (nuevaCantidad <= 0) {
+            actualizarCarritoYMemoria(carrito.filter(item => item.id !== id));
+        } else if (nuevaCantidad <= productoOriginal.stock) {
+            actualizarCarritoYMemoria(
+                carrito.map(item => item.id === id ? { ...item, cantidad: nuevaCantidad } : item)
             );
         }
-
-        actualizarCarritoYMemoria(nuevoCarrito);
     };
 
-    // MODIFICADO: Eliminar del carrito usando la nueva función de persistencia
-    const eliminarDelCarrito = (id) => {
-        const nuevoCarrito = carrito.filter(item => item.id !== id);
-        actualizarCarritoYMemoria(nuevoCarrito);
+    const vaciarCarrito = () => {
+        actualizarCarritoYMemoria([]);
     };
 
-    // Calcular totales dinámicos
-    const totalArticulos = carrito.reduce((acumulador, item) => acumulador + item.cantidad, 0);
-    const totalDinero = carrito.reduce((acumulador, item) => acumulador + (parseFloat(item.precio) * item.cantidad), 0);
-
-    const manejarCheckout = () => {
-        window.location.href = '/tienda/checkout';
-    };
+    const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
     return (
-        <div className="w-full min-h-screen bg-black text-gray-100 block relative">
-            <Head title="Nova Hardware | Tienda Gamer" />
-            
+        <div className="min-h-screen bg-black text-gray-100 font-sans selection:bg-cyan-500 selection:text-black">
+            <Head title="Nova Hardware - Tienda" />
 
-            {/* NAV BAR */}
-            <nav className="w-full bg-zinc-900 border-b border-zinc-800 p-4 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <div className="h-8 w-8 rounded bg-cyan-500 flex items-center justify-center">
-                            <span className="text-black font-black text-sm">N</span>
-                        </div>
-                        <span className="text-xl font-black tracking-wider text-cyan-400">
-                            NOVA HARDWARE
-                        </span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-4">
-                        
-                        {/* CANDADO DE INTERFAZ EXCLUSIVO PARA ADMINISTRADORES */}
-                        {auth && auth.user && auth.user.role === 'admin' && (
-                            <div className="flex items-center gap-2 bg-zinc-950 border border-purple-950/60 p-1 rounded-md">
-                                <span className="text-[9px] font-black tracking-widest text-purple-500 uppercase px-2 font-mono">
-                                    Panel:
-                                </span>
-                                <Link 
-                                    href="/admin/productos" 
-                                    className="text-[10px] font-black tracking-wider uppercase bg-zinc-900 hover:bg-zinc-800 text-cyan-400 border border-zinc-800 px-3 py-1.5 rounded transition-colors"
-                                >
-                                    📦 CRUD Productos
-                                </Link>
-                                <Link 
-                                    href="/users"
-                                    className="text-[10px] font-black tracking-wider uppercase bg-zinc-900 hover:bg-zinc-800 text-purple-400 border border-zinc-800 px-3 py-1.5 rounded transition-colors"
-                                >
-                                    👥 CRUD Usuarios
-                                </Link>
-                            </div>
-                        )}
+            {/* BARRA DE NAVEGACIÓN GLITCH / FUTURISTA */}
+            <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-zinc-900 px-6 py-4 flex items-center justify-between shadow-[0_1px_20px_rgba(0,0,0,0.8)]">
+                <div className="flex items-center gap-3">
+                    <span className="text-xl font-black tracking-tighter text-white font-mono">
+                        NOVA<span className="text-cyan-400 animate-pulse">_</span>HARDWARE
+                    </span>
+                </div>
 
-                        <button 
-                            onClick={() => setCarritoAbierto(!carritoAbierto)}
-                            className="relative text-gray-400 hover:text-cyan-400 flex items-center space-x-2 group p-2 rounded bg-zinc-950 border border-zinc-800"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-cyan-400">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                            </svg>
-                            <span className="text-xs font-black bg-cyan-500 text-black rounded-full px-2 py-0.5">
-                                {totalArticulos}
+                <div className="flex items-center gap-6">
+                    {/* CANDADO DE INTERFAZ EXCLUSIVO PARA ADMINISTRADORES (CORREGIDO PARA PRODUCCIÓN) */}
+                    {auth && auth.user && (auth.user.role === 'admin' || auth.user.role === 'administrador') && (
+                        <div className="flex items-center gap-2 bg-zinc-950 border border-purple-950/60 p-1 rounded-md">
+                            <span className="text-[9px] font-black tracking-widest text-purple-500 uppercase px-2 font-mono">
+                                Panel:
                             </span>
-                        </button>
+                            <Link 
+                                href="/admin/productos" 
+                                className="text-[10px] font-black tracking-wider uppercase bg-zinc-900 hover:bg-zinc-800 text-cyan-400 border border-zinc-800 px-3 py-1.5 rounded transition-colors"
+                            >
+                                📦 CRUD Productos
+                            </Link>
+                            <Link 
+                                href="/users"
+                                className="text-[10px] font-black tracking-wider uppercase bg-zinc-900 hover:bg-zinc-800 text-purple-400 border border-zinc-800 px-3 py-1.5 rounded transition-colors"
+                            >
+                                👥 CRUD Usuarios
+                            </Link>
+                        </div>
+                    )}
 
-                        {/* MODIFICADO: Reemplazo del botón estático por el menú desplegable */}
-                        {auth && auth.user ? (
-                            <div className="relative z-50">
+                    {/* SECCIÓN DE USUARIO / AUTENTICACIÓN */}
+                    <div className="flex items-center gap-4 border-l border-zinc-800 pl-6">
+                        {auth.user ? (
+                            <div className="relative">
                                 <Dropdown>
                                     <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-zinc-800 bg-zinc-950 px-4 py-2 text-xs font-black uppercase tracking-wider text-zinc-400 transition duration-150 ease-in-out hover:text-cyan-400 hover:bg-zinc-900 focus:outline-none"
-                                            >
-                                                <span>{auth.user.name}</span>
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4 text-cyan-400"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
+                                        <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white transition-colors focus:outline-none">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-ping"></span>
+                                            {auth.user.name}
+                                            <svg className="ms-1 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
                                     </Dropdown.Trigger>
-
-                                    <Dropdown.Content
-                                        contentClasses="py-1 bg-zinc-950 border border-zinc-800 rounded-md shadow-xl"
-                                    >
-                                        <Dropdown.Link
-                                            href={route('dashboard')}
-                                            className="block w-full px-4 py-2 text-start text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-cyan-400 hover:bg-zinc-900 transition duration-150 ease-in-out"
-                                        >
-                                            Mi Panel
+                                    <Dropdown.Content align="right" width="48" contentClasses="bg-zinc-950 border border-zinc-800 py-1 text-zinc-400">
+                                        <Dropdown.Link href={route('dashboard')} className="block w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-wider hover:bg-zinc-900 hover:text-cyan-400 transition-colors">
+                                            Dashboard
                                         </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                            className="block w-full px-4 py-2 text-start text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-rose-400 hover:bg-zinc-900 transition duration-150 ease-in-out"
-                                        >
+                                        <Dropdown.Link href={route('profile.edit')} className="block w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-wider hover:bg-zinc-900 hover:text-cyan-400 transition-colors">
+                                            Perfil
+                                        </Dropdown.Link>
+                                        <Dropdown.Link href={route('logout')} method="post" as="button" className="block w-full px-4 py-2 text-left text-xs font-bold uppercase tracking-wider hover:bg-zinc-900 hover:text-red-400 transition-colors">
                                             Cerrar Sesión
                                         </Dropdown.Link>
                                     </Dropdown.Content>
                                 </Dropdown>
                             </div>
                         ) : (
-                            <div className="flex items-center space-x-4">
-                                <Link href={route('login')} className="text-xs font-bold text-gray-400 hover:text-white uppercase">
-                                    Iniciar Sesión
+                            <>
+                                <Link href={route('login')} className="text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors">
+                                    Login
                                 </Link>
-                                <Link href={route('register')} className="bg-cyan-500 text-black font-bold px-4 py-1.5 rounded text-xs uppercase tracking-wider hover:bg-cyan-400">
-                                    Crear Cuenta
+                                <Link href={route('register')} className="text-xs font-bold uppercase tracking-wider bg-zinc-900 hover:bg-zinc-800 text-cyan-400 border border-zinc-800 px-3 py-1.5 rounded transition-colors">
+                                    Registro
                                 </Link>
-                            </div>
+                            </>
                         )}
+
+                        {/* BOTÓN CARRITO */}
+                        <button 
+                            onClick={() => setCarritoAbierto(true)}
+                            className="relative bg-zinc-950 border border-zinc-800 hover:border-cyan-500/50 p-2 rounded transition-all group"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-zinc-400 group-hover:text-cyan-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            {carrito.length > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-cyan-500 text-black font-mono font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                                    {carrito.reduce((sum, item) => sum + item.cantidad, 0)}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
             </nav>
 
-            {/* INTERFAZ LATERAL DEL CARRITO (SLIDEOVER) */}
+            {/* SIDEBAR DEL CARRITO INTERACTIVO */}
             {carritoAbierto && (
-                <div className="fixed inset-0 bg-black/70 z-50 flex justify-end backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-zinc-900 border-l border-zinc-800 h-full flex flex-col justify-between shadow-2xl">
-                        
-                        <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-950">
-                            <div className="flex items-center space-x-2">
-                                <span className="font-black tracking-wider uppercase text-sm text-white">Tu Carrito</span>
-                                <span className="text-xs font-bold bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/30">
-                                    {totalArticulos} pzs
-                                </span>
-                            </div>
-                            <button 
-                                onClick={() => setCarritoAbierto(false)}
-                                className="text-gray-400 hover:text-rose-400 transition-colors uppercase font-bold text-xs"
-                            >
-                                Cerrar ✕
+                <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="w-full max-w-md bg-zinc-950 border-l border-zinc-900 h-full p-6 flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.9)]">
+                        <div className="flex items-center justify-between border-b border-zinc-900 pb-4">
+                            <h2 className="text-sm font-black uppercase tracking-widest text-white font-mono">⚡ TU ORDEN _</h2>
+                            <button onClick={() => setCarritoAbierto(false)} className="text-zinc-500 hover:text-white font-mono text-xs uppercase tracking-wider">
+                                [ Cerrar ]
                             </button>
                         </div>
 
-                        <div className="p-4 flex-1 overflow-y-auto space-y-4">
-                            {carrito.length > 0 ? (
-                                carrito.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-lg gap-3">
-                                        <img 
-                                            src={item.imagen_url || 'https://via.placeholder.com/300'} 
-                                            alt={item.nombre} 
-                                            className="w-12 h-12 object-cover rounded border border-zinc-800 bg-black"
-                                        />
+                        {/* LISTA DE ITEMS */}
+                        <div className="flex-1 overflow-y-auto py-4 space-y-3 custom-scrollbar">
+                            {carrito.length === 0 ? (
+                                <div className="text-center py-12 text-zinc-600 font-mono text-xs uppercase">
+                                    El carrito está vacío
+                                </div>
+                            ) : (
+                                carrito.map(item => (
+                                    <div key={item.id} className="flex gap-4 p-3 border border-zinc-900 rounded bg-zinc-950/50 hover:border-zinc-800 transition-colors">
+                                        <img src={item.imagen_url} alt={item.nombre} className="w-16 h-16 object-cover rounded bg-zinc-900 border border-zinc-800" />
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="text-xs font-bold text-white truncate">{item.nombre}</h4>
-                                            <p className="text-[10px] text-cyan-400 font-bold uppercase">{item.categoria}</p>
-                                            <p className="text-xs font-black text-gray-300 mt-0.5">
-                                                ${parseFloat(item.precio).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex flex-col items-center space-y-1">
-                                            <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded">
-                                                <button onClick={() => restarDelCarrito(item.id)} className="px-2 py-0.5 text-gray-400 hover:text-white font-bold text-xs">-</button>
-                                                <span className="px-2 text-xs font-mono font-bold text-cyan-400">{item.cantidad}</span>
-                                                <button onClick={() => agregarAlCarrito(item)} className="px-2 py-0.5 text-gray-400 hover:text-white font-bold text-xs">+</button>
+                                            <h4 className="text-xs font-bold uppercase tracking-wide truncate text-gray-200">{item.nombre}</h4>
+                                            <p className="text-xs font-mono text-cyan-400 mt-1">${Number(item.precio).toLocaleString()}</p>
+                                            
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <button onClick={() => cambiarCantidad(item.id, -1)} className="w-5 h-5 border border-zinc-800 hover:border-zinc-700 rounded flex items-center justify-center text-xs text-zinc-400 hover:text-white transition-colors">-</button>
+                                                <span className="text-xs font-mono text-white w-4 text-center">{item.style ? item.style : item.cantidad}</span>
+                                                <button onClick={() => cambiarCantidad(item.id, 1)} className="w-5 h-5 border border-zinc-800 hover:border-zinc-700 rounded flex items-center justify-center text-xs text-zinc-400 hover:text-white transition-colors">+</button>
                                             </div>
-                                            <button 
-                                                onClick={() => eliminarDelCarrito(item.id)}
-                                                className="text-[10px] uppercase font-bold text-rose-500 hover:text-rose-400 tracking-wider"
-                                            >
-                                                Quitar
-                                            </button>
                                         </div>
                                     </div>
                                 ))
-                            ) : (
-                                <div className="text-center py-16 text-gray-600">
-                                    <p className="text-xs uppercase font-bold tracking-wider">El carrito está vacío</p>
-                                    <p className="text-[10px] mt-1 text-gray-500">Añade componentes para armar tu Setup.</p>
-                                </div>
                             )}
                         </div>
 
-                        <div className="p-4 border-t border-zinc-800 bg-zinc-950 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Total estimado:</span>
-                                <span className="text-xl font-black text-cyan-400">
-                                    ${totalDinero.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                                </span>
+                        {/* TOTAL Y ACCIONES */}
+                        {carrito.length > 0 && (
+                            <div className="border-t border-zinc-900 pt-4 mt-auto space-y-4">
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Subtotal:</span>
+                                    <span className="text-lg font-mono font-black text-cyan-400">${total.toLocaleString()}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={vaciarCarrito} className="py-2.5 px-4 border border-zinc-900 hover:bg-zinc-900 rounded text-xs font-bold uppercase tracking-wider text-zinc-400 hover:text-white transition-colors">
+                                        Vaciar
+                                    </button>
+                                    <button className="py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-black rounded text-xs font-black uppercase tracking-widest shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all">
+                                        Checkout
+                                    </button>
+                                </div>
                             </div>
-                            
-                            <button
-                                onClick={manejarCheckout}
-                                disabled={carrito.length === 0}
-                                className={`w-full py-3 rounded text-xs font-black uppercase tracking-wider transition-colors ${
-                                    carrito.length > 0
-                                        ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/10'
-                                        : 'bg-zinc-900 text-zinc-600 cursor-not-allowed border border-zinc-800'
-                                }`}
-                            >
-                                Proceder al pago
-                            </button>
-                        </div>
-
+                        )}
                     </div>
                 </div>
             )}
 
-            {/* HERO BANNER */}
-            <header className="w-full bg-zinc-900/50 py-12 text-center border-b border-zinc-800/50">
-                <h1 className="text-3xl font-black uppercase text-white tracking-tight">
-                    POTENCIA TU <span className="text-cyan-400">SETUP GAMER</span>
-                </h1>
-                <p className="text-xs text-gray-400 mt-2 max-w-md mx-auto uppercase tracking-widest">
-                    Componentes de última generación y laptops listas para la batalla.
-                </p>
-            </header>
-
-            {/* CONTENIDO */}
-            <main className="max-w-7xl mx-auto p-6">
-                
-                {/* FILTROS */}
-                <div className="flex flex-wrap gap-2 justify-center mb-8">
-                    {categorias.map((cat) => (
+            {/* CONTENIDO PRINCIPAL */}
+            <main className="max-w-7xl mx-auto px-6 py-8">
+                {/* FILTRO DE CATEGORÍAS */}
+                <div className="flex flex-wrap gap-2 mb-8 pb-4 border-b border-zinc-900">
+                    {categorias.map(cat => (
                         <button
                             key={cat}
                             onClick={() => setCategoriaSeleccionada(cat)}
-                            className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-wider border transition-colors ${
+                            className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${
                                 categoriaSeleccionada === cat
-                                    ? 'bg-cyan-500 border-cyan-500 text-black'
-                                    : 'bg-zinc-900 border-zinc-800 text-gray-400 hover:text-white hover:border-zinc-700'
+                                    ? 'bg-cyan-500 text-black font-black shadow-[0_0_15px_rgba(34,211,238,0.4)]'
+                                    : 'bg-zinc-950 text-zinc-400 border border-zinc-900 hover:border-zinc-800 hover:text-white'
                             }`}
                         >
                             {cat}
@@ -308,41 +231,43 @@ export default function Index({ productos = [] }) {
                     ))}
                 </div>
 
-                {/* GRID DE PRODUCTOS */}
+                {/* GRILLA DE PRODUCTOS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {productosFiltrados.length > 0 ? (
-                        productosFiltrados.map((producto) => (
-                            <div key={producto.id} className="bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col justify-between overflow-hidden shadow-xl hover:border-cyan-500/50 transition-colors">
-                                
-                                <div className="h-40 bg-black relative flex items-center justify-center overflow-hidden">
+                        productosFiltrados.map(producto => (
+                            <div 
+                                key={producto.id} 
+                                className="group relative bg-zinc-950 border border-zinc-900 hover:border-cyan-500/30 rounded overflow-hidden flex flex-col justify-between shadow-lg hover:shadow-[0_0_30px_rgba(34,211,238,0.05)] transition-all duration-300"
+							>
+                                <div className="relative aspect-square overflow-hidden bg-zinc-900 border-b border-zinc-900">
                                     <img 
-                                        src={producto.imagen_url || 'https://via.placeholder.com/300'} 
-                                        alt={producto.nombre}
-                                        className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity"
+                                        src={producto.imagen_url} 
+                                        alt={producto.nombre} 
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
-                                    <span className="absolute top-2 right-2 bg-black/80 text-cyan-400 text-[10px] font-bold uppercase px-2 py-0.5 rounded border border-zinc-800">
-                                        {producto.categoria}
-                                    </span>
+                                    {producto.stock === 0 && (
+                                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center">
+                                            <span className="text-xs font-mono font-black tracking-widest text-red-500 border border-red-500/30 bg-red-950/20 px-3 py-1 rounded uppercase">Agotado _</span>
+                                        </div>
+                                    )}
+                                    {producto.stock > 0 && producto.stock <= 3 && (
+                                        <div className="absolute top-2 right-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded">
+                                            Últimas {producto.stock} uds
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="p-4 flex-1 flex flex-col justify-between">
-                                    <div className="mb-4">
-                                        <h3 className="font-bold text-sm text-white line-clamp-2 min-h-[2.5rem]">
-                                            {producto.nombre}
-                                        </h3>
-                                        <p className="text-gray-400 text-xs mt-1 line-clamp-2">
-                                            {producto.descripcion}
-                                        </p>
+                                    <div>
+                                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{producto.categoria}</span>
+                                        <h3 className="text-sm font-bold uppercase tracking-wide text-white mt-1 group-hover:text-cyan-400 transition-colors line-clamp-2">{producto.nombre}</h3>
+                                        <p className="text-xs text-zinc-400 mt-2 line-clamp-2">{producto.descripcion}</p>
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                                            <span className="text-md font-black text-white">
-                                                ${parseFloat(producto.precio).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                                            </span>
-                                            <span className={`text-[10px] font-bold uppercase ${producto.stock > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {producto.stock > 0 ? `${producto.stock} Pzs` : 'Agotado'}
-                                            </span>
+                                    <div className="mt-4 pt-4 border-t border-zinc-900">
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-xs font-mono text-zinc-500">PRECIO //</span>
+                                            <span className="text-base font-mono font-black text-cyan-400">${Number(producto.precio).toLocaleString()}</span>
                                         </div>
 
                                         <button
