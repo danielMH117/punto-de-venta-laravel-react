@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
         );
 
         // 3. Relacionamos al usuario con el rol (CORREGIDO CON CORCHETES)
-        $user->roles()->syncWithoutDetaching([$admin->id]);
+        $admin = Role::updateOrCreate(['name' => 'Administrador']);
 
         // 4. LLAMAR AL SEEDER DE PRODUCTOS (NUEVO)
         $this->call(ProductoSeeder::class);
